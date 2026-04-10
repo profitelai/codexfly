@@ -1,0 +1,10 @@
+# Install every repo-native skill.
+brainstorm-spec
+implementation-planner
+frontend-design
+security-review
+project-memory
+stack-generator
+ceo-review
+server-login
+github-login

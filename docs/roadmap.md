@@ -7,6 +7,7 @@
 - define architecture
 - define contribution workflow
 - create community and issue templates
+- create repo-native skill packs and project skill loaders
 
 ## Phase 2: Core Project Memory
 
@@ -43,6 +44,7 @@
 - limit tracking
 - efficiency dashboards
 - high-usage diagnostics
+- skill-pack effectiveness and prompt-reuse analysis
 
 ## Phase 7: Mission-Control UX
 

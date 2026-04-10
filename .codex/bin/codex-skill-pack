@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: codex-skill-pack <list|show|install|project> [pack]
+
+Commands:
+  list           List available skill packs in this repository
+  show <pack>    Show the skills included in a pack
+  install <pack> Install a specific pack into CODEX_HOME
+  project        Install the repository's default project pack
+EOF
+}
+
+[ "$#" -ge 1 ] || { usage >&2; exit 1; }
+
+command_name="$1"
+pack_name="${2:-}"
+
+case "$command_name" in
+  list)
+    "$REPO_ROOT/.codex/install-skills.sh" --list-packs
+    ;;
+  show)
+    [ -n "$pack_name" ] || { echo "Missing pack name for show" >&2; exit 1; }
+    sed -n '1,200p' "$REPO_ROOT/.codex/packs/$pack_name.txt"
+    ;;
+  install)
+    [ -n "$pack_name" ] || { echo "Missing pack name for install" >&2; exit 1; }
+    "$REPO_ROOT/.codex/install-skills.sh" --pack "$pack_name"
+    ;;
+  project)
+    "$REPO_ROOT/.codex/install-skills.sh" --project
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $command_name" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

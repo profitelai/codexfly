@@ -23,6 +23,8 @@ It should help teams:
 - analyze why a workflow succeeded or failed
 - improve future prompts using past outcomes
 - manage AI work from a clear command-center dashboard
+- reuse high-value workflow modules across repositories without repeating the same prompt scaffolding
+- reduce token waste by loading only the instructions and skills a project actually needs
 
 ## Product Identity
 
@@ -38,3 +40,4 @@ Codexfly is:
 - a prompt intelligence system
 - an agent orchestration layer
 - a cinematic mission-control experience for software delivery
+- a reusable skill and memory layer for multi-project AI development
