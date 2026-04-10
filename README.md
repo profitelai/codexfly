@@ -110,7 +110,9 @@ These act like installable capabilities, but are version-controlled with your co
 
 Codexfly groups skills into reusable packs so a repository can install the right AI workflows in one step for that project. This is designed to reduce prompt waste, keep token usage focused, and make cross-project reuse practical.
 
-Codexfly can also organize skills by reusable groups such as `research`, `planning`, `development`, `marketing`, and `project-management`, so maintainers can load only the category they need in a given terminal or repository task.
+Codexfly can also organize skills by reusable stage groups such as `discovery`, `planning`, `design`, `development`, `launch`, `maintenance`, `marketing`, and `project-management`, so maintainers can load only the category they need in a given terminal or repository task.
+
+Project profiles can then combine those groups differently for open-source, private-product, or corporate workflows, so repositories do not have to use the same AI setup regardless of business context.
 
 ### AGENTS.md
 

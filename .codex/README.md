@@ -1,6 +1,6 @@
 # Codexfly Skills Pack
 
-This starter pack adds repo-native skills, helper commands, and skill packs for Codexfly.
+This starter pack adds repo-native skills, helper commands, stage-based skill groups, and project profiles for Codexfly.
 
 ## Install locally
 
@@ -26,6 +26,12 @@ Install a skill group:
 ./.codex/install-skills.sh --group research
 ```
 
+Install a project profile:
+
+```bash
+./.codex/install-skills.sh --profile open-source
+```
+
 List available packs:
 
 ```bash
@@ -38,11 +44,18 @@ List available groups:
 ./.codex/install-skills.sh --list-groups
 ```
 
+List available profiles:
+
+```bash
+./.codex/install-skills.sh --list-profiles
+```
+
 ## Included skills
 - brainstorm-spec
 - implementation-planner
 - frontend-design
 - seo-review
+- github-growth-review
 - security-review
 - project-memory
 - stack-generator
@@ -58,17 +71,59 @@ List available groups:
 - `full`: every repo-native skill
 - `codexfly`: the recommended pack for this project, including reusable login helpers
 
-The default project pack is defined in `.codex/project-pack`, so each repository can load the right grouped skills in one step.
+The default project profile is defined in `.codex/project-profile`, so each repository can load the right grouped skills in one step. `project-pack` remains supported as a fallback.
 
 ## Skill groups
-- `research`: discovery, framing, stakeholder context, and discoverability review
-- `planning`: planning, architecture direction, and durable project state
-- `development`: implementation support, UI work, security checks, and environment helpers
+- `discovery`: problem framing, early direction, and opportunity analysis
+- `research`: stakeholder context, exploratory review, and opportunity framing
+- `planning`: architecture direction, implementation planning, and durable project state
+- `design`: UI direction, content structure, and presentation clarity
+- `development`: implementation support, security checks, and environment helpers
+- `launch`: launch-readiness, repo positioning, and public-facing presentation
 - `marketing`: discoverability, messaging, and stakeholder-facing summarization
 - `project-management`: planning, memory, and execution coordination
-- `operations`: server access, GitHub auth, and security-oriented maintenance
+- `maintenance`: ongoing review, security, and upkeep
+- `operations`: server access, GitHub auth, and operational maintenance
 
 Groups are category-based. Packs are opinionated bundles for a specific project or workflow.
+
+## Project profiles
+- `open-source`: best default for public repos that need discoverability, onboarding, and contributor growth
+- `private-product`: focused on internal planning, implementation, and controlled execution
+- `corporate-product`: stronger planning, stakeholder, governance, and operational workflow
+- `codexfly-open-source`: the recommended profile for Codexfly itself
+
+Profiles combine groups, packs, and direct skills to match a project type.
+
+## Recommended development path
+
+For open-source projects:
+
+1. `discovery`
+2. `research`
+3. `planning`
+4. `design`
+5. `development`
+6. `launch`
+7. `maintenance`
+
+For private product projects:
+
+1. `planning`
+2. `design`
+3. `development`
+4. `project-management`
+5. `operations`
+
+For corporate product projects:
+
+1. `discovery`
+2. `planning`
+3. `design`
+4. `development`
+5. `project-management`
+6. `operations`
+7. stakeholder review via `ceo-review`
 
 ## Why this exists
 
@@ -84,6 +139,7 @@ Codexfly treats reusable skills as project infrastructure.
 - `$implementation-planner` for execution plans
 - `$frontend-design` for UI direction
 - `$seo-review` for GitHub discoverability, docs structure, and content review
+- `$github-growth-review` for repo metadata, README conversion, stars/forks strategy, and open-source onboarding
 - `$security-review` before merge or deploy
 - `$project-memory` after major decisions
 - `$stack-generator` for architecture choices

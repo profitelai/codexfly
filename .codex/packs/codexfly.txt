@@ -3,6 +3,7 @@ brainstorm-spec
 implementation-planner
 frontend-design
 seo-review
+github-growth-review
 security-review
 project-memory
 stack-generator

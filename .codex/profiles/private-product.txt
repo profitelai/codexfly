@@ -1,0 +1,6 @@
+# Private product development profile.
+group:planning
+group:design
+group:development
+group:project-management
+group:operations

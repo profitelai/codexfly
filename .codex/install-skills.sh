@@ -7,19 +7,23 @@ TARGET_DIR="$CODEX_DIR/skills"
 BIN_DIR="$CODEX_DIR/bin"
 PACKS_DIR="$REPO_ROOT/.codex/packs"
 GROUPS_DIR="$REPO_ROOT/.codex/groups"
+PROFILES_DIR="$REPO_ROOT/.codex/profiles"
 PROJECT_PACK_FILE="$REPO_ROOT/.codex/project-pack"
+PROJECT_PROFILE_FILE="$REPO_ROOT/.codex/project-profile"
 MODE="all"
 PACK_NAME=""
 GROUP_NAME=""
+PROFILE_NAME=""
 
 usage() {
   cat <<'EOF'
-Usage: ./.codex/install-skills.sh [--all] [--pack NAME] [--group NAME] [--project] [--list-packs] [--list-groups]
+Usage: ./.codex/install-skills.sh [--all] [--pack NAME] [--group NAME] [--profile NAME] [--project] [--list-packs] [--list-groups] [--list-profiles]
 
 Examples:
   ./.codex/install-skills.sh
   ./.codex/install-skills.sh --pack maintainer
   ./.codex/install-skills.sh --group research
+  ./.codex/install-skills.sh --profile open-source
   ./.codex/install-skills.sh --project
 EOF
 }
@@ -46,6 +50,17 @@ list_groups() {
   done
 }
 
+list_profiles() {
+  if [ ! -d "$PROFILES_DIR" ]; then
+    return 0
+  fi
+
+  for profile_file in "$PROFILES_DIR"/*.txt; do
+    [ -f "$profile_file" ] || continue
+    basename "$profile_file" .txt
+  done
+}
+
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --all)
@@ -64,6 +79,12 @@ while [ "$#" -gt 0 ]; do
       GROUP_NAME="$2"
       shift 2
       ;;
+    --profile)
+      [ "$#" -ge 2 ] || { echo "Missing value for --profile" >&2; usage >&2; exit 1; }
+      MODE="profile"
+      PROFILE_NAME="$2"
+      shift 2
+      ;;
     --project)
       MODE="project"
       shift
@@ -74,6 +95,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --list-groups)
       list_groups
+      exit 0
+      ;;
+    --list-profiles)
+      list_profiles
       exit 0
       ;;
     -h|--help)
@@ -89,6 +114,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 mkdir -p "$TARGET_DIR"
+INSTALLED_SKILLS=""
 
 install_skill() {
   local skill_name="$1"
@@ -96,8 +122,20 @@ install_skill() {
 
   [ -d "$skill_dir" ] || { echo "Skill not found: $skill_name" >&2; exit 1; }
 
+  case "
+$INSTALLED_SKILLS
+" in
+    *"
+$skill_name
+"*)
+      return 0
+      ;;
+  esac
+
   rm -rf "$TARGET_DIR/$skill_name"
   cp -R "$skill_dir" "$TARGET_DIR/$skill_name"
+  INSTALLED_SKILLS="${INSTALLED_SKILLS}
+$skill_name"
   echo "Installed $skill_name"
 }
 
@@ -156,17 +194,62 @@ install_group() {
   done < "$group_file"
 }
 
+install_profile() {
+  local profile="$1"
+  local profile_file="$PROFILES_DIR/$profile.txt"
+  local entry
+  local kind
+  local value
+
+  [ -f "$profile_file" ] || { echo "Profile not found: $profile" >&2; exit 1; }
+
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    case "$entry" in
+      \#*) continue ;;
+    esac
+
+    kind="${entry%%:*}"
+    value="${entry#*:}"
+
+    case "$kind" in
+      skill)
+        install_skill "$value"
+        ;;
+      pack)
+        install_pack "$value"
+        ;;
+      group)
+        install_group "$value"
+        ;;
+      *)
+        echo "Unknown profile entry: $entry" >&2
+        exit 1
+        ;;
+    esac
+  done < "$profile_file"
+}
+
 if [ "$MODE" = "project" ]; then
-  [ -f "$PROJECT_PACK_FILE" ] || {
-    echo "Project pack file not found: $PROJECT_PACK_FILE" >&2
-    exit 1
-  }
-  PACK_NAME="$(sed -n '1p' "$PROJECT_PACK_FILE" | tr -d '[:space:]')"
-  [ -n "$PACK_NAME" ] || {
-    echo "Project pack file is empty: $PROJECT_PACK_FILE" >&2
-    exit 1
-  }
-  MODE="pack"
+  if [ -f "$PROJECT_PROFILE_FILE" ]; then
+    PROFILE_NAME="$(sed -n '1p' "$PROJECT_PROFILE_FILE" | tr -d '[:space:]')"
+    [ -n "$PROFILE_NAME" ] || {
+      echo "Project profile file is empty: $PROJECT_PROFILE_FILE" >&2
+      exit 1
+    }
+    MODE="profile"
+  else
+    [ -f "$PROJECT_PACK_FILE" ] || {
+      echo "Project pack file not found: $PROJECT_PACK_FILE" >&2
+      exit 1
+    }
+    PACK_NAME="$(sed -n '1p' "$PROJECT_PACK_FILE" | tr -d '[:space:]')"
+    [ -n "$PACK_NAME" ] || {
+      echo "Project pack file is empty: $PROJECT_PACK_FILE" >&2
+      exit 1
+    }
+    MODE="pack"
+  fi
 fi
 
 case "$MODE" in
@@ -178,6 +261,9 @@ case "$MODE" in
     ;;
   group)
     install_group "$GROUP_NAME"
+    ;;
+  profile)
+    install_profile "$PROFILE_NAME"
     ;;
 esac
 
