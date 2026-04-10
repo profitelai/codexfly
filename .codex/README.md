@@ -14,6 +14,12 @@ Install the repo's default project pack:
 ./.codex/install-skills.sh --project
 ```
 
+Show the repo's project metadata:
+
+```bash
+./.codex/bin/codex-skill-pack show-project
+```
+
 Install a specific skill pack:
 
 ```bash
@@ -71,7 +77,14 @@ List available profiles:
 - `full`: every repo-native skill
 - `codexfly`: the recommended pack for this project, including reusable login helpers
 
-The default project profile is defined in `.codex/project-profile`, so each repository can load the right grouped skills in one step. `project-pack` remains supported as a fallback.
+The default project metadata is defined in `.codex/project-mode`, so each repository can declare:
+
+- `PROJECT_VISIBILITY`
+- `PROJECT_DEFAULT_PROFILE`
+- `PROJECT_DEFAULT_STAGE`
+- `PROJECT_EXTRA_GROUPS`
+
+`project-profile` and `project-pack` remain supported as fallbacks.
 
 ## Skill groups
 - `discovery`: problem framing, early direction, and opportunity analysis

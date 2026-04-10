@@ -1,0 +1,5 @@
+# Repo-level project metadata for skill orchestration.
+PROJECT_VISIBILITY=open-source
+PROJECT_DEFAULT_PROFILE=codexfly-open-source
+PROJECT_DEFAULT_STAGE=development
+PROJECT_EXTRA_GROUPS=project-management
