@@ -5,11 +5,15 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: codexfly <onboard|run> [args]
+Usage: codexfly <onboard|run|exec|memory> [args]
 
 Commands:
-  onboard "<request>"          Run project onboarding analysis
-  run --direct "<request>"     Skip onboarding for lightweight tasks
+  onboard [--verbose] "<request>"  Run project onboarding analysis
+  run --direct "<request>"         Skip onboarding for lightweight tasks
+  exec [--verbose] [--fresh-task] "<request>"  Archive old task memory if requested, then decide, apply project setup, and run Codex
+  memory status                    Show current memory state and archive count
+  memory new-task [--label "..."]  Archive current task memory and keep durable project context
+  memory new-project [--label "..."]  Archive everything and reset for a fresh project
 EOF
 }
 
@@ -20,14 +24,87 @@ shift
 
 case "$command_name" in
   onboard)
+    verbose_flag=()
+    if [ "${1:-}" = "--verbose" ]; then
+      verbose_flag=(--verbose)
+      shift
+    fi
     [ "$#" -ge 1 ] || { echo "Missing request for onboard" >&2; exit 1; }
-    exec "$REPO_ROOT/.codex/bin/codex-project-onboard" analyze "$1"
+    exec "$REPO_ROOT/.codex/bin/codex-project-onboard" analyze "${verbose_flag[@]}" "$1"
     ;;
   run)
     [ "${1:-}" = "--direct" ] || { echo "Only --direct is supported in this lightweight wrapper." >&2; exit 1; }
     shift
     [ "$#" -ge 1 ] || { echo "Missing request for direct run" >&2; exit 1; }
     exec "$REPO_ROOT/.codex/bin/codex-project-onboard" analyze --direct "$1"
+    ;;
+  exec)
+    verbose_flag=()
+    fresh_task=false
+    while [ "$#" -gt 0 ]; do
+      case "${1:-}" in
+        --verbose)
+          verbose_flag=(--verbose)
+          shift
+          ;;
+        --fresh-task)
+          fresh_task=true
+          shift
+          ;;
+        *)
+          break
+          ;;
+      esac
+    done
+    [ "$#" -ge 1 ] || { echo "Missing request for exec" >&2; exit 1; }
+
+    request="$1"
+    if [ "$fresh_task" = true ]; then
+      "$REPO_ROOT/.codex/bin/codex-project-onboard" memory new-task --label "$request"
+    fi
+    analysis_output="$("$REPO_ROOT/.codex/bin/codex-project-onboard" analyze "${verbose_flag[@]}" "$request")"
+    printf '%s\n' "$analysis_output"
+
+    mode="$(printf '%s\n' "$analysis_output" | sed -n 's/^MODE: //p' | head -n 1)"
+    if [ "$mode" = "onboarding" ]; then
+      echo "APPLY: installing project skills and helpers"
+      "$REPO_ROOT/.codex/install-skills.sh" --project
+    else
+      echo "APPLY: using existing project setup"
+    fi
+
+    echo "EXEC: running Codex"
+    exec codex exec -C "$REPO_ROOT" "$request"
+    ;;
+  memory)
+    subcommand="${1:-}"
+    shift || true
+    case "$subcommand" in
+      status)
+        exec "$REPO_ROOT/.codex/bin/codex-project-onboard" memory status
+        ;;
+      new-task)
+        label_flag=()
+        if [ "${1:-}" = "--label" ]; then
+          [ "$#" -ge 2 ] || { echo "Missing value for --label" >&2; exit 1; }
+          label_flag=(--label "$2")
+        fi
+        exec "$REPO_ROOT/.codex/bin/codex-project-onboard" memory new-task "${label_flag[@]}"
+        ;;
+      new-project)
+        label_flag=()
+        if [ "${1:-}" = "--label" ]; then
+          [ "$#" -ge 2 ] || { echo "Missing value for --label" >&2; exit 1; }
+          label_flag=(--label "$2")
+        fi
+        exec "$REPO_ROOT/.codex/bin/codex-project-onboard" memory new-project "${label_flag[@]}"
+        ;;
+      *)
+        echo "Unknown memory command: ${subcommand:-missing}" >&2
+        usage >&2
+        exit 1
+        ;;
+    esac
     ;;
   -h|--help|help)
     usage

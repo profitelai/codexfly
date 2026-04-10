@@ -155,7 +155,12 @@ Codexfly treats reusable skills as project infrastructure.
 
 ## Suggested usage
 - `codex-project-onboard analyze "<request>"` for onboarding recommendations
+- `codex-project-onboard analyze --verbose "<request>"` for full decision reasoning, confidence, and helper details
 - `codexfly run --direct "<task>"` for lightweight tasks that should skip onboarding
+- `codexfly exec "<task>"` to decide setup, apply project helpers, and hand off to Codex in one flow
+- `codexfly exec --fresh-task "<task>"` to archive the previous task memory before starting a new execution flow
+- `codexfly memory new-task --label "<task-name>"` to archive the current task and keep only durable project context
+- `codexfly memory new-project --label "<project-name>"` to archive everything and reset memory for a fresh project
 - `$brainstorm-spec` for feature discovery
 - `$implementation-planner` for execution plans
 - `$frontend-design` for UI direction

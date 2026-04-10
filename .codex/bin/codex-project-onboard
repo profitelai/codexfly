@@ -15,40 +15,22 @@ MEMORY_FILE = CODEX_DIR / "project-memory.md"
 PROFILES_DIR = CODEX_DIR / "profiles"
 PACKS_DIR = CODEX_DIR / "packs"
 GROUPS_DIR = CODEX_DIR / "groups"
+MEMORY_HISTORY_DIR = CODEX_DIR / "memory-history"
 
 SKILL_TO_HELPER = {
     "github-login": "git workflow helpers",
     "server-login": "deployment helpers",
 }
 
-LOW_COMPLEXITY_NEGATIVE_TERMS = (
-    "deploy",
-    "deployment",
-    "server",
-    "auth",
-    "api",
-    "database",
-    "integration",
-    "integrations",
-    "connection",
-    "connections",
-    "repo setup",
-    "github",
-    "onboard",
-    "workflow",
-    "saas",
-    "backend",
-)
+DEFAULT_PROJECT_CONTEXT = """- vision: Codexfly is a project-centric AI workspace with persistent memory, multi-model continuation, and mission-control UX.
+- current milestone: establish architecture, roadmap, contribution model, and initial app scaffolding.
+- confirmed structure: apps/web, apps/api, apps/worker, packages/agents, packages/analytics, packages/project-memory, packages/prompt-intelligence, packages/session-ingest, packages/ui"""
 
-LOW_COMPLEXITY_POSITIVE_TERMS = (
-    "fix",
-    "bug",
-    "typo",
-    "rename",
-    "copy",
-    "single file",
-    "small change",
-)
+GENERIC_PROJECT_CONTEXT = """- vision: pending
+- current milestone: pending
+- confirmed structure: pending
+- active decisions: pending
+- open questions: pending"""
 
 
 def read_env_style(path: pathlib.Path) -> dict[str, str]:
@@ -116,15 +98,96 @@ def resolve_profile(name: str) -> tuple[list[str], list[str], list[str]]:
     return dedupe(groups), dedupe(skills), dedupe(packs)
 
 
+def score_complexity(request: str) -> int:
+    return score_complexity_with_memory(request, read_memory_signals())[0]
+
+
+def read_memory_signals() -> dict[str, bool]:
+    if not MEMORY_FILE.exists():
+        return {
+            "prefer_lighter_setup": False,
+            "deployment_gap": False,
+        }
+
+    sections = parse_memory_sections(MEMORY_FILE.read_text())
+    feedback_text = sections.get("Execution Feedback", "").lower()
+    improvements_text = sections.get("Improvements", "").lower()
+
+    return {
+        "prefer_lighter_setup": (
+            "too many skills loaded? yes" in feedback_text
+            or "reduce initial helper set" in improvements_text
+        ),
+        "deployment_gap": (
+            "missing capabilities? deployment" in feedback_text
+            or "deploy-pipeline" in improvements_text
+        ),
+    }
+
+
+def score_complexity_with_memory(request: str, memory_signals: dict[str, bool]) -> tuple[int, list[str]]:
+    text = request.lower()
+    score = 0
+    why: list[str] = []
+
+    if "deploy" in text:
+        score += 3
+        why.append("deployment work usually needs onboarding")
+    if "api" in text:
+        score += 3
+        why.append("API work usually needs broader project setup")
+    if "fix" in text:
+        score -= 2
+        why.append("fix-oriented work can usually run directly")
+    if len(text.split()) > 12:
+        score += 1
+        why.append("longer request suggests broader coordination")
+
+    if memory_signals.get("prefer_lighter_setup") and score > 0:
+        score -= 1
+        why.append("project memory suggests keeping setup lighter when possible")
+    if memory_signals.get("deployment_gap") and "deploy" in text:
+        score += 1
+        why.append("project memory recorded deployment capability gaps")
+
+    if not why:
+        why.append("existing project setup looks sufficient")
+
+    return score, why
+
+
 def classify_complexity(request: str) -> str:
-    lower = request.lower()
-    if any(term in lower for term in LOW_COMPLEXITY_NEGATIVE_TERMS):
+    return "low" if score_complexity(request) <= 0 else "medium"
+
+
+def confidence_level(score: int, forced_direct: bool) -> str:
+    if forced_direct:
+        return "high"
+    magnitude = abs(score)
+    if magnitude >= 4:
+        return "high"
+    if magnitude >= 2:
         return "medium"
-    if any(term in lower for term in LOW_COMPLEXITY_POSITIVE_TERMS) and len(lower.split()) <= 16:
-        return "low"
-    if len(lower.split()) <= 8:
-        return "low"
-    return "medium"
+    return "low"
+
+
+def default_sections(project_context: str, mode: str = "pending", request: str = "pending", improvements: str = "- pending") -> dict[str, str]:
+    return {
+        "Onboarding Decisions": (
+            "- profile: pending\n"
+            "- stage: pending\n"
+            "- groups: pending\n"
+            f"- mode: {mode}\n"
+            f"- request: {request}\n"
+        ),
+        "Execution Feedback": (
+            "- too many skills loaded? pending\n"
+            "- missing capabilities? pending\n"
+            "- friction points: pending"
+        ),
+        "Improvements": improvements,
+        "Project Context": project_context,
+    }
 
 
 def ensure_memory_sections() -> None:
@@ -132,27 +195,7 @@ def ensure_memory_sections() -> None:
         text = MEMORY_FILE.read_text()
         if "## Onboarding Decisions" in text and "## Execution Feedback" in text and "## Improvements" in text:
             return
-    template = """# Project Memory
-
-## Onboarding Decisions
-- profile: pending
-- stage: pending
-- groups: pending
-
-## Execution Feedback
-- too many skills loaded? pending
-- missing capabilities? pending
-- friction points: pending
-
-## Improvements
-- pending
-
-## Project Context
-- vision: Codexfly is a project-centric AI workspace with persistent memory, multi-model continuation, and mission-control UX.
-- current milestone: establish architecture, roadmap, contribution model, and initial app scaffolding.
-- confirmed structure: apps/web, apps/api, apps/worker, packages/agents, packages/analytics, packages/project-memory, packages/prompt-intelligence, packages/session-ingest, packages/ui
-"""
-    MEMORY_FILE.write_text(template)
+    MEMORY_FILE.write_text(render_memory(default_sections(DEFAULT_PROJECT_CONTEXT)))
 
 
 def parse_memory_sections(text: str) -> dict[str, str]:
@@ -194,6 +237,79 @@ def update_onboarding_memory(profile: str, stage: str, groups: list[str], mode: 
     MEMORY_FILE.write_text(render_memory(sections))
 
 
+def slugify(text: str) -> str:
+    value = re.sub(r"[^a-zA-Z0-9]+", "-", text.strip().lower()).strip("-")
+    return value or "snapshot"
+
+
+def archive_memory(kind: str, label: str | None) -> pathlib.Path:
+    ensure_memory_sections()
+    MEMORY_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    suffix = f"-{slugify(label)}" if label else ""
+    archive_path = MEMORY_HISTORY_DIR / f"{timestamp}-{kind}{suffix}.md"
+    archive_path.write_text(MEMORY_FILE.read_text())
+    return archive_path
+
+
+def memory_status() -> int:
+    ensure_memory_sections()
+    sections = parse_memory_sections(MEMORY_FILE.read_text())
+    archives = sorted(MEMORY_HISTORY_DIR.glob("*.md")) if MEMORY_HISTORY_DIR.exists() else []
+    onboarding = sections.get("Onboarding Decisions", "")
+    mode_match = re.search(r"(?m)^- mode: (.+)$", onboarding)
+    request_match = re.search(r"(?m)^- request: (.+)$", onboarding)
+    print(f"MEMORY_FILE: {MEMORY_FILE}")
+    print(f"CURRENT_MODE: {mode_match.group(1) if mode_match else 'pending'}")
+    print(f"CURRENT_REQUEST: {request_match.group(1) if request_match else 'pending'}")
+    print(f"ARCHIVES: {len(archives)}")
+    print("RECOMMENDATION: use `codexfly memory new-task` before unrelated work or `codexfly memory new-project` before starting a fresh project context")
+    return 0
+
+
+def reset_memory_for_new_task(label: str | None) -> int:
+    ensure_memory_sections()
+    sections = parse_memory_sections(MEMORY_FILE.read_text())
+    archive_path = archive_memory("task", label)
+    project_context = sections.get("Project Context", "").strip() or DEFAULT_PROJECT_CONTEXT
+    improvements = sections.get("Improvements", "").strip() or "- pending"
+    MEMORY_FILE.write_text(
+        render_memory(
+            default_sections(
+                project_context=project_context,
+                mode="fresh-task",
+                request=label or "pending",
+                improvements=improvements,
+            )
+        )
+    )
+    print(f"ARCHIVED: {archive_path}")
+    print("RESET: task-specific memory cleared")
+    print("PRESERVED: project context and durable improvements")
+    print("NEXT: start a fresh Codex task or run `codexfly exec \"<new task>\"`")
+    return 0
+
+
+def reset_memory_for_new_project(label: str | None) -> int:
+    ensure_memory_sections()
+    archive_path = archive_memory("project", label)
+    MEMORY_FILE.write_text(
+        render_memory(
+            default_sections(
+                project_context=GENERIC_PROJECT_CONTEXT,
+                mode="fresh-project",
+                request=label or "pending",
+                improvements="- pending",
+            )
+        )
+    )
+    print(f"ARCHIVED: {archive_path}")
+    print("RESET: full project memory cleared")
+    print("PRESERVED: archived snapshot only")
+    print("NEXT: define the new project context, then onboard again")
+    return 0
+
+
 def append_feedback(args: argparse.Namespace) -> None:
     ensure_memory_sections()
     sections = parse_memory_sections(MEMORY_FILE.read_text())
@@ -229,15 +345,7 @@ def append_feedback(args: argparse.Namespace) -> None:
     MEMORY_FILE.write_text(render_memory(sections))
 
 
-def print_direct_mode(request: str) -> int:
-    print("MODE: direct")
-    print(f"REQUEST: {request}")
-    print("REASON: low complexity task, no onboarding required")
-    print("NEXT: hand off directly to Codex with current project setup")
-    return 0
-
-
-def analyze(args: argparse.Namespace) -> int:
+def build_onboarding_state(args: argparse.Namespace) -> dict[str, object]:
     mode_data = read_env_style(MODE_FILE)
     visibility = args.visibility or mode_data.get("PROJECT_VISIBILITY", "private")
     profile = args.profile or mode_data.get("PROJECT_DEFAULT_PROFILE", "private-product")
@@ -247,11 +355,6 @@ def analyze(args: argparse.Namespace) -> int:
         for item in (mode_data.get("PROJECT_EXTRA_GROUPS", "").split(","))
         if item.strip()
     ]
-
-    complexity = args.complexity or classify_complexity(args.request)
-    if args.direct or complexity == "low":
-        return print_direct_mode(args.request)
-
     profile_groups, skills, packs = resolve_profile(profile)
     groups = dedupe(extra_groups if extra_groups else profile_groups)
     helpers = dedupe(
@@ -260,40 +363,142 @@ def analyze(args: argparse.Namespace) -> int:
     )
 
     reasoning = []
+    request_lower = args.request.lower()
     if visibility == "open-source":
         reasoning.append("Open-source -> enable public-friendly workflows")
-    if "cli" in args.request.lower():
+    if "cli" in request_lower:
         reasoning.append("CLI tool -> requires git + release flow")
-    if any(word in args.request.lower() for word in ("deploy", "deployment", "server")):
+    if any(word in request_lower for word in ("deploy", "deployment", "server")):
         reasoning.append("Deployment -> include server login helpers")
     if not reasoning:
         reasoning.append("Profile defaults cover the requested workflow")
     reasoning.append("No need for extra skill creation")
 
-    update_onboarding_memory(profile, stage, groups, "onboard", args.request)
+    return {
+        "visibility": visibility,
+        "profile": profile,
+        "stage": stage,
+        "groups": groups,
+        "skills": skills,
+        "packs": packs,
+        "helpers": helpers,
+        "reasoning": reasoning,
+    }
+
+
+def build_decision(args: argparse.Namespace, state: dict[str, object]) -> dict[str, object]:
+    memory_signals = read_memory_signals()
+    score, why = score_complexity_with_memory(args.request, memory_signals)
+
+    if args.complexity == "low":
+        mode = "direct"
+    elif args.complexity in {"medium", "high"}:
+        mode = "onboarding"
+    elif args.direct:
+        mode = "direct"
+    else:
+        mode = "direct" if score <= 0 else "onboarding"
+
+    decision = "no additional skills required" if mode == "direct" else "project workflows required"
+    reason = "existing setup sufficient" if mode == "direct" else "request needs onboarding"
+
+    return {
+        "mode": mode,
+        "decision": decision,
+        "reason": reason,
+        "score": score,
+        "why": why,
+        "confidence": confidence_level(score, args.direct),
+        "memory_signals": memory_signals,
+        "state": state,
+    }
+
+
+def print_direct_mode(request: str, decision: dict[str, object], *, verbose: bool) -> int:
+    print("MODE: direct")
+    print(f"DECISION: {decision['decision']}")
+    print(f"WHY: {'; '.join(decision['why'])}")
+    print(f"CONFIDENCE: {decision['confidence']}")
+    if verbose:
+        print(f"REASON: {decision['reason']}")
+        print(f"SCORE: {decision['score']}")
+        print(f"REQUEST: {request}")
+        print("NEXT: run Codex with the current project setup")
+    return 0
+
+
+def print_onboarding_mode(decision: dict[str, object], *, verbose: bool) -> int:
+    state = decision["state"]
+    profile = str(state["profile"])
+    groups = list(state["groups"])
+
+    if not verbose:
+        print(f"PROFILE: {profile}")
+        print(f"GROUPS: {', '.join(groups) if groups else 'none'}")
+        print("MODE: onboarding")
+        print(f"WHY: {'; '.join(decision['why'])}")
+        print(f"CONFIDENCE: {decision['confidence']}")
+        return 0
 
     print("Codexfly onboarding output")
-    print(f"PROJECT_VISIBILITY: {visibility}")
+    print("MODE: onboarding")
+    print(f"DECISION: {decision['decision']}")
+    print(f"WHY: {'; '.join(decision['why'])}")
+    print(f"CONFIDENCE: {decision['confidence']}")
+    print(f"SCORE: {decision['score']}")
+    print(f"PROJECT_VISIBILITY: {state['visibility']}")
     print(f"PROFILE: {profile}")
-    print(f"STAGE: {stage}")
-    if packs:
-        print(f"PACKS: {', '.join(packs)}")
+    print(f"STAGE: {state['stage']}")
+    if state["packs"]:
+        print(f"PACKS: {', '.join(state['packs'])}")
     print("Groups enabled")
     for group in groups:
         print(group)
     print("Skills added")
-    for skill in skills:
+    for skill in state["skills"]:
         print(skill)
     print("Helpers installed")
-    for helper in helpers:
+    for helper in state["helpers"]:
         print(helper)
     print("Decision reasoning")
-    for item in reasoning:
+    for item in state["reasoning"]:
         print(item)
+    active_memory_signals = [
+        name.replace("_", "-")
+        for name, enabled in decision["memory_signals"].items()
+        if enabled
+    ]
+    if active_memory_signals:
+        print("Project memory influence")
+        for item in active_memory_signals:
+            print(item)
     print("Result")
     print("Codex is now ready to continue with the correct setup.")
     print("No unnecessary skills loaded.")
     return 0
+
+
+def analyze(args: argparse.Namespace) -> int:
+    state = build_onboarding_state(args)
+    decision = build_decision(args, state)
+    if decision["mode"] == "direct":
+        update_onboarding_memory(
+            str(state["profile"]),
+            str(state["stage"]),
+            [],
+            "direct",
+            args.request,
+        )
+        return print_direct_mode(args.request, decision, verbose=args.verbose)
+
+    update_onboarding_memory(
+        str(state["profile"]),
+        str(state["stage"]),
+        list(state["groups"]),
+        "onboard",
+        args.request,
+    )
+    return print_onboarding_mode(decision, verbose=args.verbose)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -307,12 +512,24 @@ def build_parser() -> argparse.ArgumentParser:
     analyze_parser.add_argument("--stage")
     analyze_parser.add_argument("--complexity", choices=["low", "medium", "high"])
     analyze_parser.add_argument("--direct", action="store_true")
+    analyze_parser.add_argument("--verbose", action="store_true")
 
     feedback_parser = sub.add_parser("feedback")
     feedback_parser.add_argument("--too-many-skills-loaded", default="pending")
     feedback_parser.add_argument("--missing-capabilities", default="pending")
     feedback_parser.add_argument("--friction-points", default="pending")
     feedback_parser.add_argument("--improvement", action="append")
+
+    memory_parser = sub.add_parser("memory")
+    memory_sub = memory_parser.add_subparsers(dest="memory_command", required=True)
+
+    memory_sub.add_parser("status")
+
+    memory_new_task = memory_sub.add_parser("new-task")
+    memory_new_task.add_argument("--label")
+
+    memory_new_project = memory_sub.add_parser("new-project")
+    memory_new_project.add_argument("--label")
 
     return parser
 
@@ -325,6 +542,13 @@ def main() -> int:
     if args.command == "feedback":
         append_feedback(args)
         return 0
+    if args.command == "memory":
+        if args.memory_command == "status":
+            return memory_status()
+        if args.memory_command == "new-task":
+            return reset_memory_for_new_task(args.label)
+        if args.memory_command == "new-project":
+            return reset_memory_for_new_project(args.label)
     parser.error("unknown command")
     return 2
 

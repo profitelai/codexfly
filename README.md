@@ -140,7 +140,12 @@ Then try:
 ```bash
 codexfly onboard "I want to build an open-source CLI tool for managing deployments."
 codexfly run --direct "fix this bug"
+codexfly exec "build CLI tool"
+codexfly exec --fresh-task "start a new contributor onboarding flow"
+codexfly memory new-task --label "bugfix batch"
 ```
+
+When work shifts to an unrelated task, archive the active task memory first and keep only durable project context. When starting a completely new project context, use `codexfly memory new-project --label "<name>"` to archive everything and reset cleanly.
 
 ## Support Codexfly
 
