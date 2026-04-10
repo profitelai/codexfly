@@ -1,0 +1,8 @@
+# Corporate and business-oriented project profile.
+group:discovery
+group:planning
+group:design
+group:development
+group:project-management
+group:operations
+skill:ceo-review

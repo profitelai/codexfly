@@ -1,0 +1,8 @@
+# Product discovery and direction.
+brainstorm-spec
+implementation-planner
+frontend-design
+seo-review
+github-growth-review
+ceo-review
+project-memory

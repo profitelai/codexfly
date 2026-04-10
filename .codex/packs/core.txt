@@ -1,0 +1,4 @@
+# Baseline workflow for most repos.
+brainstorm-spec
+implementation-planner
+project-memory

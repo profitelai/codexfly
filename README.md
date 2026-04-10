@@ -1,6 +1,6 @@
-Codexfly
+# Codexfly
 
-An open-source AI operating system for real software projects.
+Open-source AI workspace for coding agents, project memory, AGENTS.md workflows, and reusable skill packs.
 
 Project standards and contributor workflow:
 
@@ -15,7 +15,11 @@ Codexfly is an AI development system for teams that want continuity across codin
 
 Instead of treating AI work as disposable chat, Codexfly makes the repository the source of truth for how AI operates.
 
-It brings together:
+It is aimed at teams building with coding agents, Codex-style workflows, reusable prompts, project memory, and multi-agent development systems.
+
+## Core capabilities
+
+Codexfly brings together:
 
 persistent project memory
 repo-native skills (reusable AI workflows)
@@ -25,10 +29,22 @@ replayable session history
 agent orchestration
 multi-user collaboration
 controlled terminal execution
+prompt and token efficiency through reusable skill packs
 
 into a single mission-control system.
 
-Why Codexfly
+Codexfly also treats reusable AI workflows as repo-native infrastructure: skills, skill packs, AGENTS.md guidance, and project memory can all travel with the repository instead of being rebuilt from scratch in every session.
+
+## Who it is for
+
+Codexfly is for:
+
+- teams using coding agents in real repositories
+- maintainers who want reusable AI workflows across projects
+- builders who want project memory and agent orchestration instead of disposable chats
+- open-source contributors working on AI developer tools, prompt systems, and agent infrastructure
+
+## Why Codexfly
 
 Most AI coding tools are optimized for a single conversation.
 
@@ -51,7 +67,7 @@ switch models without losing continuity
 
 Codexfly is designed for that.
 
-Core Idea
+## Core idea
 
 Codexfly treats AI development as a system with three layers of continuity:
 
@@ -69,25 +85,36 @@ A compact, continuously updated brief that any model or agent can continue from
 
 This allows work to continue across sessions, contributors, and models without starting over.
 
-The Codexfly Operating Model
+## The Codexfly operating model
 
 Codexfly makes AI behavior part of the repository itself.
 
-Skills (workflow modules)
+### Skills
 
 Reusable workflows stored in the repo:
 
 brainstorm-spec
 implementation-planner
 frontend-design
+seo-review
 security-review
 project-memory
 stack-generator
 ceo-review
+server-login
+github-login
 
 These act like installable capabilities, but are version-controlled with your codebase.
 
-AGENTS.md (directory intelligence)
+### Skill packs and project loaders
+
+Codexfly groups skills into reusable packs so a repository can install the right AI workflows in one step for that project. This is designed to reduce prompt waste, keep token usage focused, and make cross-project reuse practical.
+
+Codexfly can also organize skills by reusable stage groups such as `discovery`, `planning`, `design`, `development`, `launch`, `maintenance`, `marketing`, and `project-management`, so maintainers can load only the category they need in a given terminal or repository task.
+
+Project profiles can then combine those groups differently for open-source, private-product, or corporate workflows, so repositories do not have to use the same AI setup regardless of business context.
+
+### AGENTS.md
 
 Instructions live alongside the code:
 
@@ -98,7 +125,7 @@ packages/* → system-level guidance
 
 AI behavior adapts based on where it is in the repository.
 
-Project Memory
+### Project memory
 
 A shared, durable memory file:
 
@@ -113,7 +140,21 @@ open questions
 
 Any model or agent can resume work instantly using this shared context.
 
-How It Works
+## OpenAI and Codex ecosystem relevance
+
+Codexfly is being built as infrastructure for better use of coding agents, not just as a single app.
+
+It is intended to help teams:
+
+- reuse project-specific workflows instead of repeating long prompts
+- standardize agent instructions through repo-native files like `AGENTS.md`
+- reduce waste across projects with reusable skill packs and project loaders
+- preserve durable memory so future sessions and models start from the right state
+- make Codex and related OpenAI tooling easier to use in real multi-project environments
+
+If Codexfly is submitted to an OpenAI or ecosystem support program, the right claim is that it improves developer workflows around Codex-style agent usage and open, reusable project conventions. It should not claim endorsement or guaranteed eligibility for free API credits unless OpenAI explicitly grants that.
+
+## How it works
 
 A typical workflow in Codexfly:
 
@@ -126,7 +167,7 @@ Generate summaries with ceo-review
 
 The result is a workflow that compounds context instead of losing it.
 
-🧠 Mission Control Dashboard
+## Mission-control dashboard
 
 The Codexfly dashboard is the central interface for managing projects, agents, memory, and execution.
 

@@ -1,0 +1,7 @@
+# Public open-source project profile.
+group:discovery
+group:planning
+group:design
+group:development
+group:launch
+group:maintenance

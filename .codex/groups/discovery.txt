@@ -1,0 +1,4 @@
+# Early-stage idea discovery and framing.
+brainstorm-spec
+ceo-review
+seo-review

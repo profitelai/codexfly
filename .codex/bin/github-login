@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+MODE="login"
+ENV_FILE="${GITHUB_LOGIN_ENV:-}"
+GH_HOST_OVERRIDE=""
+
+usage() {
+  cat <<'EOF'
+Usage: github-login [--check] [--hostname HOST] [--env PATH]
+
+Configuration can come from environment variables or an env file.
+Supported variables:
+  GITHUB_TOKEN
+  GH_TOKEN
+  GITHUB_PAT
+  GITHUB_ACCESS_TOKEN
+  GH_HOST
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check)
+      MODE="check"
+      shift
+      ;;
+    --hostname)
+      [[ $# -ge 2 ]] || { echo "Missing value for --hostname" >&2; usage >&2; exit 1; }
+      GH_HOST_OVERRIDE="$2"
+      shift 2
+      ;;
+    --env)
+      [[ $# -ge 2 ]] || { echo "Missing value for --env" >&2; usage >&2; exit 1; }
+      ENV_FILE="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+load_env_file() {
+  local candidate
+
+  if [[ -n "${ENV_FILE:-}" ]]; then
+    [[ -f "$ENV_FILE" ]] || { echo "Env file not found: $ENV_FILE" >&2; exit 1; }
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+    return
+  fi
+
+  for candidate in \
+    "$REPO_ROOT/.codex/github-login.env" \
+    "$HOME/.codex/github-login.env"
+  do
+    if [[ -f "$candidate" ]]; then
+      ENV_FILE="$candidate"
+      set -a
+      # shellcheck disable=SC1090
+      source "$candidate"
+      set +a
+      return
+    fi
+  done
+}
+
+load_env_file
+
+GH_HOST="${GH_HOST_OVERRIDE:-${GH_HOST:-github.com}}"
+GITHUB_LOGIN_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-${GITHUB_PAT:-${GITHUB_ACCESS_TOKEN:-}}}}"
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "GitHub CLI (gh) is required." >&2
+  exit 1
+fi
+
+status_for_host() {
+  gh auth status --hostname "$GH_HOST"
+}
+
+if [[ "$MODE" == "check" ]]; then
+  echo "env_file=${ENV_FILE:-none}"
+  echo "hostname=$GH_HOST"
+  if [[ -n "$GITHUB_LOGIN_TOKEN" ]]; then
+    echo "token=set"
+  else
+    echo "token=missing"
+  fi
+  status_for_host || true
+  exit 0
+fi
+
+if status_for_host >/dev/null 2>&1; then
+  status_for_host
+  exit 0
+fi
+
+if [[ -z "$GITHUB_LOGIN_TOKEN" ]]; then
+  echo "No GitHub token found. Set GITHUB_TOKEN or provide an env file." >&2
+  exit 1
+fi
+
+printf '%s\n' "$GITHUB_LOGIN_TOKEN" | gh auth login --hostname "$GH_HOST" --with-token >/dev/null
+status_for_host

@@ -1,0 +1,4 @@
+# Recommended profile for Codexfly.
+pack:codexfly
+group:launch
+group:maintenance

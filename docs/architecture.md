@@ -12,6 +12,7 @@ Core layers:
 4. Agent orchestration
 5. Usage and analytics
 6. Mission-control UI
+7. Repo-native skill packs and project loaders
 
 ## Core Entities
 
@@ -99,6 +100,17 @@ Definitions and workflows for:
 - Codex execution agent
 - Review agent
 - Usage optimization agent
+
+### `.codex/skills` and `.codex/packs`
+
+Repo-native workflow modules and grouped skill packs that can be installed per project.
+
+These should:
+
+- keep reusable AI workflows versioned with the repo
+- allow project-specific packs such as `core`, `maintainer`, or `codexfly`
+- reduce prompt duplication across repositories and sessions
+- support one-step skill installation per project terminal
 
 ### `packages/analytics`
 

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: codex-skill-pack <list|show|install|project|list-groups|show-group|install-group|list-profiles|show-profile|install-profile> [name]
+
+Commands:
+  list           List available skill packs in this repository
+  show <pack>    Show the skills included in a pack
+  install <pack> Install a specific pack into CODEX_HOME
+  project        Install the repository's default project pack
+  list-groups    List available skill groups in this repository
+  show-group <group>
+                 Show the skills included in a group
+  install-group <group>
+                 Install a specific group into CODEX_HOME
+  list-profiles  List available project profiles in this repository
+  show-profile <profile>
+                 Show the entries included in a profile
+  install-profile <profile>
+                 Install a specific profile into CODEX_HOME
+EOF
+}
+
+[ "$#" -ge 1 ] || { usage >&2; exit 1; }
+
+command_name="$1"
+pack_name="${2:-}"
+
+case "$command_name" in
+  list)
+    "$REPO_ROOT/.codex/install-skills.sh" --list-packs
+    ;;
+  show)
+    [ -n "$pack_name" ] || { echo "Missing pack name for show" >&2; exit 1; }
+    sed -n '1,200p' "$REPO_ROOT/.codex/packs/$pack_name.txt"
+    ;;
+  install)
+    [ -n "$pack_name" ] || { echo "Missing pack name for install" >&2; exit 1; }
+    "$REPO_ROOT/.codex/install-skills.sh" --pack "$pack_name"
+    ;;
+  project)
+    "$REPO_ROOT/.codex/install-skills.sh" --project
+    ;;
+  list-groups)
+    "$REPO_ROOT/.codex/install-skills.sh" --list-groups
+    ;;
+  show-group)
+    [ -n "$pack_name" ] || { echo "Missing group name for show-group" >&2; exit 1; }
+    sed -n '1,200p' "$REPO_ROOT/.codex/groups/$pack_name.txt"
+    ;;
+  install-group)
+    [ -n "$pack_name" ] || { echo "Missing group name for install-group" >&2; exit 1; }
+    "$REPO_ROOT/.codex/install-skills.sh" --group "$pack_name"
+    ;;
+  list-profiles)
+    "$REPO_ROOT/.codex/install-skills.sh" --list-profiles
+    ;;
+  show-profile)
+    [ -n "$pack_name" ] || { echo "Missing profile name for show-profile" >&2; exit 1; }
+    sed -n '1,200p' "$REPO_ROOT/.codex/profiles/$pack_name.txt"
+    ;;
+  install-profile)
+    [ -n "$pack_name" ] || { echo "Missing profile name for install-profile" >&2; exit 1; }
+    "$REPO_ROOT/.codex/install-skills.sh" --profile "$pack_name"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $command_name" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
