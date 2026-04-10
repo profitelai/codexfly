@@ -1,12 +1,17 @@
 # Codexfly Skills Pack
 
-This starter pack adds seven Codex skills plus repo-scoped instruction files.
+This starter pack adds repo-scoped Codex skills, helper commands, and instruction files.
 
 ## Install locally
 
 ```bash
 ./.codex/install-skills.sh
 ```
+
+The installer copies:
+
+- skills into `~/.codex/skills`
+- helper commands into `~/.codex/bin`
 
 ## Included skills
 - brainstorm-spec
@@ -16,6 +21,8 @@ This starter pack adds seven Codex skills plus repo-scoped instruction files.
 - project-memory
 - stack-generator
 - ceo-review
+- server-login
+- github-login
 
 ## Suggested usage
 - `$brainstorm-spec` for feature discovery
@@ -25,3 +32,5 @@ This starter pack adds seven Codex skills plus repo-scoped instruction files.
 - `$project-memory` after major decisions
 - `$stack-generator` for architecture choices
 - `$ceo-review` for stakeholder updates
+- `$server-login` for reusable SSH access workflows
+- `$github-login` for reusable GitHub CLI auth workflows

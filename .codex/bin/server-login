@@ -1,0 +1,205 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+MODE="connect"
+REMOTE_COMMAND=""
+ENV_FILE="${SERVER_LOGIN_ENV:-}"
+SSH_ALIAS_OVERRIDE=""
+
+usage() {
+  cat <<'EOF'
+Usage: server-login [--check] [--command CMD] [--alias NAME] [--env PATH]
+
+Configuration can come from environment variables or an env file.
+Supported variables:
+  SSH_ALIAS
+  SSH_HOST
+  SSH_PORT
+  SSH_USER
+  SSH_PASSWORD
+  SSH_IDENTITY_FILE
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check)
+      MODE="check"
+      shift
+      ;;
+    --command)
+      [[ $# -ge 2 ]] || { echo "Missing value for --command" >&2; usage >&2; exit 1; }
+      MODE="command"
+      REMOTE_COMMAND="$2"
+      shift 2
+      ;;
+    --alias)
+      [[ $# -ge 2 ]] || { echo "Missing value for --alias" >&2; usage >&2; exit 1; }
+      SSH_ALIAS_OVERRIDE="$2"
+      shift 2
+      ;;
+    --env)
+      [[ $# -ge 2 ]] || { echo "Missing value for --env" >&2; usage >&2; exit 1; }
+      ENV_FILE="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+load_env_file() {
+  local candidate
+
+  if [[ -n "${ENV_FILE:-}" ]]; then
+    [[ -f "$ENV_FILE" ]] || { echo "Env file not found: $ENV_FILE" >&2; exit 1; }
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+    return
+  fi
+
+  for candidate in \
+    "$REPO_ROOT/.codex/server-login.env" \
+    "$HOME/.codex/server-login.env"
+  do
+    if [[ -f "$candidate" ]]; then
+      ENV_FILE="$candidate"
+      set -a
+      # shellcheck disable=SC1090
+      source "$candidate"
+      set +a
+      return
+    fi
+  done
+}
+
+load_env_file
+
+SSH_ALIAS="${SSH_ALIAS_OVERRIDE:-${SSH_ALIAS:-}}"
+SSH_HOST="${SSH_HOST:-}"
+SSH_PORT="${SSH_PORT:-}"
+SSH_USER="${SSH_USER:-}"
+SSH_PASSWORD="${SSH_PASSWORD:-}"
+SSH_IDENTITY_FILE="${SSH_IDENTITY_FILE:-}"
+
+socket_key="${SSH_ALIAS:-${SSH_HOST:-default}}"
+socket_key="${socket_key//[^a-zA-Z0-9._-]/-}"
+SSH_SOCKET="${SERVER_LOGIN_SOCKET:-$HOME/.ssh/${socket_key}.sock}"
+
+mkdir -p "$(dirname "$SSH_SOCKET")"
+
+if [[ -n "$SSH_ALIAS" ]]; then
+  ssh_target="$SSH_ALIAS"
+elif [[ -n "$SSH_HOST" ]]; then
+  if [[ -n "$SSH_USER" ]]; then
+    ssh_target="${SSH_USER}@${SSH_HOST}"
+  else
+    ssh_target="$SSH_HOST"
+  fi
+else
+  echo "Missing SSH target. Set SSH_ALIAS or SSH_HOST." >&2
+  exit 1
+fi
+
+ssh_base_args=(-o StrictHostKeyChecking=accept-new)
+ssh_password_args=()
+
+if [[ -n "$SSH_PORT" ]]; then
+  ssh_base_args+=(-p "$SSH_PORT")
+fi
+
+if [[ -n "$SSH_IDENTITY_FILE" ]]; then
+  ssh_base_args+=(-i "$SSH_IDENTITY_FILE")
+fi
+
+if [[ -n "$SSH_PASSWORD" ]]; then
+  ssh_password_args+=(
+    -o PreferredAuthentications=password
+    -o PubkeyAuthentication=no
+  )
+fi
+
+has_control_socket() {
+  ssh -S "$SSH_SOCKET" -O check "${ssh_base_args[@]}" "$ssh_target" >/dev/null 2>&1
+}
+
+bootstrap_control_socket() {
+  if has_control_socket; then
+    return 0
+  fi
+
+  rm -f "$SSH_SOCKET"
+
+  if [[ -n "$SSH_PASSWORD" ]]; then
+    if command -v expect >/dev/null 2>&1; then
+      export SSH_SOCKET SSH_PASSWORD
+      export SSH_LOGIN_TARGET="$ssh_target"
+      export SSH_LOGIN_ARGS="${ssh_base_args[*]} ${ssh_password_args[*]}"
+
+      expect <<'EOF'
+set timeout -1
+log_user 0
+set socket $env(SSH_SOCKET)
+set password $env(SSH_PASSWORD)
+set target $env(SSH_LOGIN_TARGET)
+set base_args [split $env(SSH_LOGIN_ARGS)]
+
+eval spawn ssh -fN -M -S $socket $base_args $target
+
+expect {
+  -re "(?i)continue connecting" {
+    send -- "yes\r"
+    exp_continue
+  }
+  -re "(?i)password:" {
+    send -- "$password\r"
+    exp_continue
+  }
+  eof
+}
+EOF
+      return 0
+    fi
+
+    if command -v sshpass >/dev/null 2>&1; then
+      SSHPASS="$SSH_PASSWORD" sshpass -e ssh -fN -M -S "$SSH_SOCKET" "${ssh_base_args[@]}" "${ssh_password_args[@]}" "$ssh_target"
+      return 0
+    fi
+  fi
+
+  ssh -fN -M -S "$SSH_SOCKET" "${ssh_base_args[@]}" "${ssh_password_args[@]}" "$ssh_target"
+}
+
+if [[ "$MODE" == "check" ]]; then
+  echo "env_file=${ENV_FILE:-none}"
+  echo "target=$ssh_target"
+  echo "socket=$SSH_SOCKET"
+  if [[ -n "$SSH_PASSWORD" ]]; then
+    echo "auth=password"
+  elif [[ -n "$SSH_IDENTITY_FILE" ]]; then
+    echo "auth=identity-file"
+  else
+    echo "auth=ssh-agent-or-interactive"
+  fi
+  exit 0
+fi
+
+bootstrap_control_socket
+
+if [[ "$MODE" == "command" ]]; then
+  exec ssh -S "$SSH_SOCKET" "${ssh_base_args[@]}" "$ssh_target" "$REMOTE_COMMAND"
+fi
+
+exec ssh -tt -S "$SSH_SOCKET" "${ssh_base_args[@]}" "$ssh_target"

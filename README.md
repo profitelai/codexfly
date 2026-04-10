@@ -75,8 +75,12 @@ security-review
 project-memory
 stack-generator
 ceo-review
+server-login
+github-login
 
 These act like installable capabilities, but are version-controlled with your codebase.
+
+Repo-native helper commands can also be installed from `.codex/bin` for repeatable auth and environment workflows.
 
 AGENTS.md (directory intelligence)
 

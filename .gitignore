@@ -10,6 +10,10 @@ out/
 .env
 .env.local
 .env.*.local
+.codex/*.env
+.codex/**/*.env
+.codex/server-access/
+.codex/github-access/
 
 # Logs
 *.log
