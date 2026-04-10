@@ -20,10 +20,22 @@ Install a specific skill pack:
 ./.codex/install-skills.sh --pack maintainer
 ```
 
+Install a skill group:
+
+```bash
+./.codex/install-skills.sh --group research
+```
+
 List available packs:
 
 ```bash
 ./.codex/install-skills.sh --list-packs
+```
+
+List available groups:
+
+```bash
+./.codex/install-skills.sh --list-groups
 ```
 
 ## Included skills
@@ -47,6 +59,16 @@ List available packs:
 - `codexfly`: the recommended pack for this project, including reusable login helpers
 
 The default project pack is defined in `.codex/project-pack`, so each repository can load the right grouped skills in one step.
+
+## Skill groups
+- `research`: discovery, framing, stakeholder context, and discoverability review
+- `planning`: planning, architecture direction, and durable project state
+- `development`: implementation support, UI work, security checks, and environment helpers
+- `marketing`: discoverability, messaging, and stakeholder-facing summarization
+- `project-management`: planning, memory, and execution coordination
+- `operations`: server access, GitHub auth, and security-oriented maintenance
+
+Groups are category-based. Packs are opinionated bundles for a specific project or workflow.
 
 ## Why this exists
 

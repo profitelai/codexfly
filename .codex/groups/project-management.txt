@@ -1,0 +1,4 @@
+# Planning, coordination, and durable context.
+implementation-planner
+project-memory
+ceo-review

@@ -5,13 +5,18 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: codex-skill-pack <list|show|install|project> [pack]
+Usage: codex-skill-pack <list|show|install|project|list-groups|show-group|install-group> [name]
 
 Commands:
   list           List available skill packs in this repository
   show <pack>    Show the skills included in a pack
   install <pack> Install a specific pack into CODEX_HOME
   project        Install the repository's default project pack
+  list-groups    List available skill groups in this repository
+  show-group <group>
+                 Show the skills included in a group
+  install-group <group>
+                 Install a specific group into CODEX_HOME
 EOF
 }
 
@@ -34,6 +39,17 @@ case "$command_name" in
     ;;
   project)
     "$REPO_ROOT/.codex/install-skills.sh" --project
+    ;;
+  list-groups)
+    "$REPO_ROOT/.codex/install-skills.sh" --list-groups
+    ;;
+  show-group)
+    [ -n "$pack_name" ] || { echo "Missing group name for show-group" >&2; exit 1; }
+    sed -n '1,200p' "$REPO_ROOT/.codex/groups/$pack_name.txt"
+    ;;
+  install-group)
+    [ -n "$pack_name" ] || { echo "Missing group name for install-group" >&2; exit 1; }
+    "$REPO_ROOT/.codex/install-skills.sh" --group "$pack_name"
     ;;
   -h|--help|help)
     usage

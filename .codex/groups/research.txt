@@ -1,0 +1,4 @@
+# Discovery, framing, and review work.
+brainstorm-spec
+seo-review
+ceo-review
