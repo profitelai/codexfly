@@ -2,6 +2,15 @@ Codexfly
 
 An open-source AI operating system for real software projects.
 
+Project standards and contributor workflow:
+
+- [Contributing](./CONTRIBUTING.md)
+- [Security Policy](./SECURITY.md)
+- [Support](./SUPPORT.md)
+- [Governance](./GOVERNANCE.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [License](./LICENSE)
+
 Codexfly is an AI development system for teams that want continuity across coding sessions, models, agents, and machines.
 
 Instead of treating AI work as disposable chat, Codexfly makes the repository the source of truth for how AI operates.

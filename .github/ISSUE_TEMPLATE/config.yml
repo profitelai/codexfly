@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Support and contribution guidance
+    url: https://github.com/profitelai/codexfly/blob/main/SUPPORT.md
+    about: Read support and contribution guidance before opening a new thread.
+  - name: Security policy
+    url: https://github.com/profitelai/codexfly/blob/main/SECURITY.md
+    about: Report vulnerabilities privately and avoid public disclosure.
