@@ -17,6 +17,30 @@ Instead of treating AI work as disposable chat, Codexfly makes the repository th
 
 It is aimed at teams building with coding agents, Codex-style workflows, reusable prompts, project memory, and multi-agent development systems.
 
+## What Codexfly does
+
+Codexfly prepares the right development environment before coding starts.
+
+Example:
+
+You ask:
+
+`"Create an open-source CLI tool"`
+
+Codexfly:
+
+- selects the right project profile
+- loads only necessary workflows
+- avoids unnecessary complexity
+
+Then Codex builds with the correct setup.
+
+This prevents:
+
+- overloading tools
+- missing workflows
+- inconsistent project setup
+
 ## Core capabilities
 
 Codexfly brings together:
@@ -169,6 +193,34 @@ Generate summaries with ceo-review
 
 The result is a workflow that compounds context instead of losing it.
 
+## Real demo
+
+- [Open-source CLI example](./docs/examples/open-source-cli.md)
+- [Demo recording script](./docs/examples/demo-script.md)
+
+## Light mode
+
+For small tasks, Codexfly can skip onboarding and hand work directly to Codex.
+
+Use:
+
+```bash
+codexfly run --direct "fix this bug"
+```
+
+Use onboarding for larger work:
+
+```bash
+codexfly onboard "build SaaS backend"
+```
+
+Direct mode should be used when the task is low complexity:
+
+- single-file task
+- no integrations
+- no deployment
+- no repo setup needed
+
 ## Mission-control dashboard
 
 The Codexfly dashboard is the central interface for managing projects, agents, memory, and execution.
@@ -253,6 +305,10 @@ understand what is happening
 intervene when needed
 trust automation
 collaborate across users and sessions
+
+## Support Codexfly
+
+Help build open infrastructure for AI-powered development.
 Authentication, Accounts, and Runtime
 
 Codexfly separates identity, provider access, and execution.

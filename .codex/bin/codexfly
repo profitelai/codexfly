@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: codexfly <onboard|run> [args]
+
+Commands:
+  onboard "<request>"          Run project onboarding analysis
+  run --direct "<request>"     Skip onboarding for lightweight tasks
+EOF
+}
+
+[ "$#" -ge 1 ] || { usage >&2; exit 1; }
+
+command_name="$1"
+shift
+
+case "$command_name" in
+  onboard)
+    [ "$#" -ge 1 ] || { echo "Missing request for onboard" >&2; exit 1; }
+    exec "$REPO_ROOT/.codex/bin/codex-project-onboard" analyze "$1"
+    ;;
+  run)
+    [ "${1:-}" = "--direct" ] || { echo "Only --direct is supported in this lightweight wrapper." >&2; exit 1; }
+    shift
+    [ "$#" -ge 1 ] || { echo "Missing request for direct run" >&2; exit 1; }
+    exec "$REPO_ROOT/.codex/bin/codex-project-onboard" analyze --direct "$1"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $command_name" >&2
+    usage >&2
+    exit 1
+    ;;
+esac

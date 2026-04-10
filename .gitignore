@@ -28,3 +28,7 @@ out/
 # Temporary
 tmp/
 coverage/
+
+# Python cache
+__pycache__/
+*.pyc
