@@ -30,6 +30,7 @@ List available packs:
 - brainstorm-spec
 - implementation-planner
 - frontend-design
+- seo-review
 - security-review
 - project-memory
 - stack-generator
@@ -39,7 +40,7 @@ List available packs:
 
 ## Skill packs
 - `core`: baseline planning and memory workflow
-- `product`: discovery, planning, UI direction, and stakeholder output
+- `product`: discovery, planning, UI direction, discoverability, and stakeholder output
 - `engineering`: implementation, architecture, security, and durable memory
 - `maintainer`: maintainer review, memory, planning, stakeholder summary, and auth helpers
 - `full`: every repo-native skill
@@ -60,6 +61,7 @@ Codexfly treats reusable skills as project infrastructure.
 - `$brainstorm-spec` for feature discovery
 - `$implementation-planner` for execution plans
 - `$frontend-design` for UI direction
+- `$seo-review` for GitHub discoverability, docs structure, and content review
 - `$security-review` before merge or deploy
 - `$project-memory` after major decisions
 - `$stack-generator` for architecture choices

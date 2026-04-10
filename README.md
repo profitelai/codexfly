@@ -96,6 +96,7 @@ Reusable workflows stored in the repo:
 brainstorm-spec
 implementation-planner
 frontend-design
+seo-review
 security-review
 project-memory
 stack-generator

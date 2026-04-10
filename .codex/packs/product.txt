@@ -2,5 +2,6 @@
 brainstorm-spec
 implementation-planner
 frontend-design
+seo-review
 ceo-review
 project-memory
