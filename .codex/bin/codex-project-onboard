@@ -1,0 +1,333 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import pathlib
+import re
+import sys
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+CODEX_DIR = ROOT / ".codex"
+MODE_FILE = CODEX_DIR / "project-mode"
+MEMORY_FILE = CODEX_DIR / "project-memory.md"
+PROFILES_DIR = CODEX_DIR / "profiles"
+PACKS_DIR = CODEX_DIR / "packs"
+GROUPS_DIR = CODEX_DIR / "groups"
+
+SKILL_TO_HELPER = {
+    "github-login": "git workflow helpers",
+    "server-login": "deployment helpers",
+}
+
+LOW_COMPLEXITY_NEGATIVE_TERMS = (
+    "deploy",
+    "deployment",
+    "server",
+    "auth",
+    "api",
+    "database",
+    "integration",
+    "integrations",
+    "connection",
+    "connections",
+    "repo setup",
+    "github",
+    "onboard",
+    "workflow",
+    "saas",
+    "backend",
+)
+
+LOW_COMPLEXITY_POSITIVE_TERMS = (
+    "fix",
+    "bug",
+    "typo",
+    "rename",
+    "copy",
+    "single file",
+    "small change",
+)
+
+
+def read_env_style(path: pathlib.Path) -> dict[str, str]:
+    data: dict[str, str] = {}
+    if not path.exists():
+        return data
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        data[key.strip()] = value.strip()
+    return data
+
+
+def read_entries(path: pathlib.Path) -> list[str]:
+    if not path.exists():
+        return []
+    values = []
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        values.append(line)
+    return values
+
+
+def dedupe(items: list[str]) -> list[str]:
+    seen = set()
+    result = []
+    for item in items:
+        if item in seen:
+            continue
+        seen.add(item)
+        result.append(item)
+    return result
+
+
+def resolve_pack(name: str) -> list[str]:
+    return read_entries(PACKS_DIR / f"{name}.txt")
+
+
+def resolve_group(name: str) -> list[str]:
+    return read_entries(GROUPS_DIR / f"{name}.txt")
+
+
+def resolve_profile(name: str) -> tuple[list[str], list[str], list[str]]:
+    groups: list[str] = []
+    skills: list[str] = []
+    packs: list[str] = []
+    for entry in read_entries(PROFILES_DIR / f"{name}.txt"):
+        if ":" not in entry:
+            continue
+        kind, value = entry.split(":", 1)
+        kind = kind.strip()
+        value = value.strip()
+        if kind == "group":
+            groups.append(value)
+            skills.extend(resolve_group(value))
+        elif kind == "skill":
+            skills.append(value)
+        elif kind == "pack":
+            packs.append(value)
+            skills.extend(resolve_pack(value))
+    return dedupe(groups), dedupe(skills), dedupe(packs)
+
+
+def classify_complexity(request: str) -> str:
+    lower = request.lower()
+    if any(term in lower for term in LOW_COMPLEXITY_NEGATIVE_TERMS):
+        return "medium"
+    if any(term in lower for term in LOW_COMPLEXITY_POSITIVE_TERMS) and len(lower.split()) <= 16:
+        return "low"
+    if len(lower.split()) <= 8:
+        return "low"
+    return "medium"
+
+
+def ensure_memory_sections() -> None:
+    if MEMORY_FILE.exists():
+        text = MEMORY_FILE.read_text()
+        if "## Onboarding Decisions" in text and "## Execution Feedback" in text and "## Improvements" in text:
+            return
+    template = """# Project Memory
+
+## Onboarding Decisions
+- profile: pending
+- stage: pending
+- groups: pending
+
+## Execution Feedback
+- too many skills loaded? pending
+- missing capabilities? pending
+- friction points: pending
+
+## Improvements
+- pending
+
+## Project Context
+- vision: Codexfly is a project-centric AI workspace with persistent memory, multi-model continuation, and mission-control UX.
+- current milestone: establish architecture, roadmap, contribution model, and initial app scaffolding.
+- confirmed structure: apps/web, apps/api, apps/worker, packages/agents, packages/analytics, packages/project-memory, packages/prompt-intelligence, packages/session-ingest, packages/ui
+"""
+    MEMORY_FILE.write_text(template)
+
+
+def parse_memory_sections(text: str) -> dict[str, str]:
+    sections: dict[str, str] = {}
+    matches = list(re.finditer(r"(?m)^## (.+)$", text))
+    for index, match in enumerate(matches):
+        heading = match.group(1).strip()
+        start = match.end() + 1
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections[heading] = text[start:end].strip()
+    return sections
+
+
+def render_memory(sections: dict[str, str]) -> str:
+    ordered = [
+        "Onboarding Decisions",
+        "Execution Feedback",
+        "Improvements",
+        "Project Context",
+    ]
+    parts = ["# Project Memory"]
+    for heading in ordered:
+        body = sections.get(heading, "").strip()
+        parts.append(f"## {heading}")
+        parts.append(body)
+    return "\n\n".join(parts).rstrip() + "\n"
+
+
+def update_onboarding_memory(profile: str, stage: str, groups: list[str], mode: str, request: str) -> None:
+    ensure_memory_sections()
+    sections = parse_memory_sections(MEMORY_FILE.read_text())
+    sections["Onboarding Decisions"] = (
+        f"- profile: {profile}\n"
+        f"- stage: {stage}\n"
+        f"- groups: {', '.join(groups) if groups else 'none'}\n"
+        f"- mode: {mode}\n"
+        f"- request: {request}\n"
+    )
+    MEMORY_FILE.write_text(render_memory(sections))
+
+
+def append_feedback(args: argparse.Namespace) -> None:
+    ensure_memory_sections()
+    sections = parse_memory_sections(MEMORY_FILE.read_text())
+    timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    feedback_lines = [
+        f"- [{timestamp}] too many skills loaded? {args.too_many_skills_loaded}",
+        f"- [{timestamp}] missing capabilities? {args.missing_capabilities}",
+        f"- [{timestamp}] friction points: {args.friction_points}",
+    ]
+    improvement_lines = []
+    if args.improvement:
+        for item in args.improvement:
+            improvement_lines.append(f"- [{timestamp}] {item}")
+    if "deploy" in args.missing_capabilities.lower():
+        improvement_lines.append(f"- [{timestamp}] consider adding deploy-pipeline skill")
+    if args.too_many_skills_loaded.lower() in {"yes", "true"}:
+        improvement_lines.append(f"- [{timestamp}] reduce initial helper set for lightweight projects")
+
+    sections["Execution Feedback"] = "\n".join(feedback_lines)
+    if improvement_lines:
+        current = sections.get("Improvements", "").strip()
+        merged_lines = [line for line in current.splitlines() if line.strip()]
+        current_text = "\n".join(merged_lines)
+        for line in improvement_lines:
+            if line in merged_lines:
+                continue
+            plain = re.sub(r"^- \[[^\]]+\] ", "- ", line)
+            if plain in current_text:
+                continue
+            merged_lines.append(line)
+        sections["Improvements"] = "\n".join(merged_lines)
+
+    MEMORY_FILE.write_text(render_memory(sections))
+
+
+def print_direct_mode(request: str) -> int:
+    print("MODE: direct")
+    print(f"REQUEST: {request}")
+    print("REASON: low complexity task, no onboarding required")
+    print("NEXT: hand off directly to Codex with current project setup")
+    return 0
+
+
+def analyze(args: argparse.Namespace) -> int:
+    mode_data = read_env_style(MODE_FILE)
+    visibility = args.visibility or mode_data.get("PROJECT_VISIBILITY", "private")
+    profile = args.profile or mode_data.get("PROJECT_DEFAULT_PROFILE", "private-product")
+    stage = args.stage or mode_data.get("PROJECT_DEFAULT_STAGE", "development")
+    extra_groups = [
+        item.strip()
+        for item in (mode_data.get("PROJECT_EXTRA_GROUPS", "").split(","))
+        if item.strip()
+    ]
+
+    complexity = args.complexity or classify_complexity(args.request)
+    if args.direct or complexity == "low":
+        return print_direct_mode(args.request)
+
+    profile_groups, skills, packs = resolve_profile(profile)
+    groups = dedupe(extra_groups if extra_groups else profile_groups)
+    helpers = dedupe(
+        ["skill-pack loader", "onboarding orchestrator"]
+        + [label for skill, label in SKILL_TO_HELPER.items() if skill in skills]
+    )
+
+    reasoning = []
+    if visibility == "open-source":
+        reasoning.append("Open-source -> enable public-friendly workflows")
+    if "cli" in args.request.lower():
+        reasoning.append("CLI tool -> requires git + release flow")
+    if any(word in args.request.lower() for word in ("deploy", "deployment", "server")):
+        reasoning.append("Deployment -> include server login helpers")
+    if not reasoning:
+        reasoning.append("Profile defaults cover the requested workflow")
+    reasoning.append("No need for extra skill creation")
+
+    update_onboarding_memory(profile, stage, groups, "onboard", args.request)
+
+    print("Codexfly onboarding output")
+    print(f"PROJECT_VISIBILITY: {visibility}")
+    print(f"PROFILE: {profile}")
+    print(f"STAGE: {stage}")
+    if packs:
+        print(f"PACKS: {', '.join(packs)}")
+    print("Groups enabled")
+    for group in groups:
+        print(group)
+    print("Skills added")
+    for skill in skills:
+        print(skill)
+    print("Helpers installed")
+    for helper in helpers:
+        print(helper)
+    print("Decision reasoning")
+    for item in reasoning:
+        print(item)
+    print("Result")
+    print("Codex is now ready to continue with the correct setup.")
+    print("No unnecessary skills loaded.")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="codex-project-onboard")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    analyze_parser = sub.add_parser("analyze")
+    analyze_parser.add_argument("request")
+    analyze_parser.add_argument("--visibility")
+    analyze_parser.add_argument("--profile")
+    analyze_parser.add_argument("--stage")
+    analyze_parser.add_argument("--complexity", choices=["low", "medium", "high"])
+    analyze_parser.add_argument("--direct", action="store_true")
+
+    feedback_parser = sub.add_parser("feedback")
+    feedback_parser.add_argument("--too-many-skills-loaded", default="pending")
+    feedback_parser.add_argument("--missing-capabilities", default="pending")
+    feedback_parser.add_argument("--friction-points", default="pending")
+    feedback_parser.add_argument("--improvement", action="append")
+
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.command == "analyze":
+        return analyze(args)
+    if args.command == "feedback":
+        append_feedback(args)
+        return 0
+    parser.error("unknown command")
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

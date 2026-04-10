@@ -8,6 +8,12 @@ This starter pack adds repo-native skills, helper commands, stage-based skill gr
 ./.codex/install-skills.sh
 ```
 
+Install the current repo helpers too:
+
+```bash
+./.codex/install-skills.sh --project
+```
+
 Install the repo's default project pack:
 
 ```bash
@@ -148,6 +154,8 @@ Codexfly treats reusable skills as project infrastructure.
 - The same model-facing conventions can be reused across many repositories instead of being rewritten each time.
 
 ## Suggested usage
+- `codex-project-onboard analyze "<request>"` for onboarding recommendations
+- `codexfly run --direct "<task>"` for lightweight tasks that should skip onboarding
 - `$brainstorm-spec` for feature discovery
 - `$implementation-planner` for execution plans
 - `$frontend-design` for UI direction
