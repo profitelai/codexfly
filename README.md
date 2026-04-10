@@ -11,11 +11,7 @@ Project standards and contributor workflow:
 - [Code of Conduct](./CODE_OF_CONDUCT.md)
 - [License](./LICENSE)
 
-Codexfly is an AI development system for teams that want continuity across coding sessions, models, agents, and machines.
-
-Instead of treating AI work as disposable chat, Codexfly makes the repository the source of truth for how AI operates.
-
-It is aimed at teams building with coding agents, Codex-style workflows, reusable prompts, project memory, and multi-agent development systems.
+Codexfly is an orchestration layer for AI coding agents. It prepares the right project setup before code is generated, so repositories can define how AI should operate instead of rebuilding that logic in every session.
 
 ## What Codexfly does
 
@@ -41,424 +37,131 @@ This prevents:
 - missing workflows
 - inconsistent project setup
 
-## Core capabilities
-
-Codexfly brings together:
-
-persistent project memory
-repo-native skills (reusable AI workflows)
-directory-aware instructions (AGENTS.md)
-multi-model continuation
-replayable session history
-agent orchestration
-multi-user collaboration
-controlled terminal execution
-prompt and token efficiency through reusable skill packs
-
-into a single mission-control system.
-
-Codexfly also treats reusable AI workflows as repo-native infrastructure: skills, skill packs, AGENTS.md guidance, and project memory can all travel with the repository instead of being rebuilt from scratch in every session.
-
-## Who it is for
-
-Codexfly is for:
-
-- teams using coding agents in real repositories
-- maintainers who want reusable AI workflows across projects
-- builders who want project memory and agent orchestration instead of disposable chats
-- open-source contributors working on AI developer tools, prompt systems, and agent infrastructure
-
-## Why Codexfly
-
-Most AI coding tools are optimized for a single conversation.
-
-Real software development is not.
-
-Work spans:
-
-multiple sessions
-multiple contributors
-multiple models
-evolving decisions over time
-
-Teams need a system that can:
-
-preserve context across sessions and people
-give agents the right instructions in the right part of the repo
-standardize workflows like spec → plan → build → review
-accumulate memory instead of rebuilding it
-switch models without losing continuity
-
-Codexfly is designed for that.
-
-## Core idea
-
-Codexfly treats AI development as a system with three layers of continuity:
-
-1. Raw session history
-
-Prompts, replies, commands, edits, logs, and diffs
-
-2. Structured project state
-
-Decisions, tasks, blockers, relevant files, and checkpoints
-
-3. Distilled project memory
-
-A compact, continuously updated brief that any model or agent can continue from
-
-This allows work to continue across sessions, contributors, and models without starting over.
-
-## The Codexfly operating model
-
-Codexfly makes AI behavior part of the repository itself.
-
-### Skills
-
-Reusable workflows stored in the repo:
-
-brainstorm-spec
-implementation-planner
-frontend-design
-seo-review
-security-review
-project-memory
-stack-generator
-ceo-review
-server-login
-github-login
-
-These act like installable capabilities, but are version-controlled with your codebase.
-
-### Skill packs and project loaders
-
-Codexfly groups skills into reusable packs so a repository can install the right AI workflows in one step for that project. This is designed to reduce prompt waste, keep token usage focused, and make cross-project reuse practical.
-
-Codexfly can also organize skills by reusable stage groups such as `discovery`, `planning`, `design`, `development`, `launch`, `maintenance`, `marketing`, and `project-management`, so maintainers can load only the category they need in a given terminal or repository task.
-
-Project profiles can then combine those groups differently for open-source, private-product, or corporate workflows, so repositories do not have to use the same AI setup regardless of business context.
-
-Each repository can also declare repo-level project metadata in `.codex/project-mode`, including visibility, default profile, default stage, and optional extra groups for that repository's normal workflow.
-
-### AGENTS.md
-
-Instructions live alongside the code:
-
-root → product rules
-apps/web → frontend conventions
-apps/api → backend and data rules
-packages/* → system-level guidance
-
-AI behavior adapts based on where it is in the repository.
-
-### Project memory
-
-A shared, durable memory file:
-
-.codex/project-memory.md
-
-Stores:
-
-key decisions
-architecture
-active work
-open questions
-
-Any model or agent can resume work instantly using this shared context.
-
-## OpenAI and Codex ecosystem relevance
-
-Codexfly is being built as infrastructure for better use of coding agents, not just as a single app.
-
-It is intended to help teams:
-
-- reuse project-specific workflows instead of repeating long prompts
-- standardize agent instructions through repo-native files like `AGENTS.md`
-- reduce waste across projects with reusable skill packs and project loaders
-- preserve durable memory so future sessions and models start from the right state
-- make Codex and related OpenAI tooling easier to use in real multi-project environments
-
-If Codexfly is submitted to an OpenAI or ecosystem support program, the right claim is that it improves developer workflows around Codex-style agent usage and open, reusable project conventions. It should not claim endorsement or guaranteed eligibility for free API credits unless OpenAI explicitly grants that.
-
 ## How it works
 
-A typical workflow in Codexfly:
+Given a project request, Codexfly:
 
-Turn an idea into a spec using brainstorm-spec
-Turn the spec into a plan with implementation-planner
-Apply directory-specific guidance via AGENTS.md
-Build with shared memory and model continuity
-Run security-review before merge
-Generate summaries with ceo-review
+- selects the right project profile
+- determines the current development stage
+- enables only the necessary groups, skills, and helpers
+- records onboarding decisions in shared project memory
+- hands off to Codex or another coding agent for execution
 
-The result is a workflow that compounds context instead of losing it.
+This keeps token usage focused and makes AI behavior part of the repository itself.
 
 ## Real demo
 
 - [Open-source CLI example](./docs/examples/open-source-cli.md)
 - [Demo recording script](./docs/examples/demo-script.md)
 
-## Light mode
+The CLI example shows a concrete onboarding result for an open-source deployment tool, including selected profile, groups, skills, helpers, and reasoning.
 
-For small tasks, Codexfly can skip onboarding and hand work directly to Codex.
+## Modes
 
-Use:
+### Direct mode
+
+For small tasks, Codexfly can skip onboarding and hand work directly to Codex:
 
 ```bash
 codexfly run --direct "fix this bug"
 ```
 
-Use onboarding for larger work:
-
-```bash
-codexfly onboard "build SaaS backend"
-```
-
-Direct mode should be used when the task is low complexity:
+Use direct mode when the task is low complexity:
 
 - single-file task
 - no integrations
 - no deployment
 - no repo setup needed
 
-## Mission-control dashboard
+### Onboarding mode
 
-The Codexfly dashboard is the central interface for managing projects, agents, memory, and execution.
+Use onboarding when the task needs broader setup:
 
-It is not a static UI — it is a live operational view of the project.
+```bash
+codexfly onboard "build SaaS backend"
+```
 
-What the Dashboard Shows
-1. Project State
-active tasks
-current milestone
-blockers and dependencies
-recent decisions
-linked specs and plans
+## Core concepts
 
-Reflects the structured project state layer.
+- Profiles: project types such as open-source, private-product, and corporate-product
+- Stages: lifecycle phases such as discovery, planning, development, launch, and maintenance
+- Groups: bundles of related skills by category
+- Skills: reusable AI workflows stored with the repo
+- Helpers: executable commands for recurring setup and operations
+- Project Mode: repo-level defaults in `.codex/project-mode`
+- Project Memory: durable execution context in `.codex/project-memory.md`
 
-2. Agent Activity
-active agents (Project Manager, Research, Execution, Review)
-current tasks per agent
-agent handoffs and transitions
-status: running, waiting, blocked, completed
+## Project configuration
 
-Shows how work is coordinated in real time.
+Each repository can declare its normal operating defaults in `.codex/project-mode`:
 
-3. Terminal & Execution
-active terminal sessions
-recent commands and outputs
-current repo, branch, and environment
-execution history and logs
-approval requests for risky actions
+```bash
+PROJECT_VISIBILITY=open-source
+PROJECT_DEFAULT_PROFILE=codexfly-open-source
+PROJECT_DEFAULT_STAGE=development
+PROJECT_EXTRA_GROUPS=project-management
+```
 
-Connects AI decisions to actual system execution.
+This lets one repo behave like an open-source project and another behave like a private or corporate workflow without changing the core system.
 
-4. Project Memory
-latest distilled project memory
-updates to .codex/project-memory.md
-memory diffs over time
-key decisions and open questions
+## Learning system
 
-Ensures continuity across sessions and contributors.
+Codexfly uses `.codex/project-memory.md` to keep onboarding and execution adaptive instead of static.
 
-Dashboard Capabilities
+It records:
 
-Users can:
+- onboarding decisions
+- execution feedback
+- missing capabilities
+- follow-up improvements
 
-start and stop agent workflows
-inspect and approve commands before execution
-jump between memory, specs, code, and terminal
-switch models without losing context
-replay sessions step-by-step
-trigger skills directly
-Design Philosophy
+That feedback can be used to reduce unnecessary skills on future runs and recommend missing workflow components when similar requests come back.
 
-The dashboard should feel like a mission control system, not a dashboard.
+## Why Codexfly
 
-It should be:
+Codexfly is built for teams and maintainers who need:
 
-minimal at first glance
-information-dense when expanded
-animated to reflect real activity
-structured around workflows
+- consistent project onboarding
+- reduced token usage through focused skill loading
+- reusable workflows across repositories
+- continuity across sessions, contributors, and models
+- repo-native AI behavior through versioned instructions and memory
 
-Key elements:
+## Getting started
 
-live task pipelines
-agent activity streams
-execution timelines
-subtle, meaningful motion
-Why the Dashboard Matters
+```bash
+git clone https://github.com/profitelai/codexfly
+cd codexfly
+./.codex/install-skills.sh --project
+```
 
-Most AI tools show outputs.
+Then try:
 
-Codexfly shows:
-
-state
-process
-execution
-
-This allows teams to:
-
-understand what is happening
-intervene when needed
-trust automation
-collaborate across users and sessions
+```bash
+codexfly onboard "I want to build an open-source CLI tool for managing deployments."
+codexfly run --direct "fix this bug"
+```
 
 ## Support Codexfly
 
 Help build open infrastructure for AI-powered development.
-Authentication, Accounts, and Runtime
 
-Codexfly separates identity, provider access, and execution.
+If this direction matters to you, support can help fund:
 
-Codexfly Accounts
-email / Google / GitHub login
-team workspaces
-roles (owner, admin, member)
-project permissions
-audit history
-Connected AI Accounts
+- better onboarding intelligence
+- more reusable skills and helper packs
+- stronger open-source contributor workflows
 
-Each user connects their own:
+## Contributing
 
-OpenAI / Codex
-API keys
-future providers
+We are building a modular system for developer workflows. Contributions are useful in:
 
-This ensures:
+- onboarding improvements
+- reusable skills and groups
+- real-world examples
+- project memory and orchestration
+- docs, discoverability, and contributor setup
 
-no shared credentials
-clear attribution
-accurate usage tracking
-safe collaboration
-Terminal Runtime
-Local runtime (v1)
-runs on user machine
-secure local agent
-full control
-Remote runtime (future)
-containerized execution
-reproducible environments
-shared team runtime
-Safe Execution Model
+## License
 
-Every command:
-
-proposed by agent
-validated by Codexfly
-executed in controlled runtime
-logged and tracked
-optionally approved
-
-Tracked data includes:
-
-user
-workspace
-project
-model
-runtime
-command history
-cost
-Initial Product Direction
-
-Codexfly is being built as:
-
-an AI project mission-control system
-a repo-native workflow engine
-a prompt intelligence platform
-a multi-model workspace
-a task orchestration layer
-First Agent: Project Manager
-
-Responsibilities:
-
-understand user intent
-break work into tasks
-decide when research is needed
-generate better prompts
-coordinate agents
-maintain project state
-Planned Features
-project memory across sessions
-session replay and search
-prompt intelligence
-research-first workflows
-repo-native skills
-AGENTS.md behavior
-multi-agent system
-cost analytics
-model handoffs
-mission-control dashboard
-Design Direction
-
-The interface should be:
-
-simple on entry
-cinematic in depth
-clean for daily use
-visually alive without noise
-
-Mission control should feel like a living system.
-
-Recommended Stack
-Frontend
-Next.js
-React
-Tailwind
-Framer Motion
-React Three Fiber
-Backend
-Node.js
-PostgreSQL
-Redis / queue
-object storage
-What Makes Codexfly Different
-
-Codexfly makes AI part of the project itself.
-
-workflows = skills
-instructions = code
-memory = persistent
-execution = controlled
-
-This turns AI into part of your development system.
-
-Who Codexfly Is For
-
-Teams that:
-
-use multiple AI tools
-need continuity across sessions
-want project-specific workflows
-want repo-defined AI behavior
-need safe multi-user execution
-Current Status
-
-Early open-source development.
-
-Current focus:
-
-product vision
-architecture
-repo-native workflows
-scaffolding
-contributors
-
-Goal: reach public alpha.
-
-Contributing
-
-Contributions welcome in:
-
-frontend / motion
-agents
-skills
-ingestion
-prompt intelligence
-backend
-analytics
-docs
-
-See CONTRIBUTING.md.
+MIT. See [LICENSE](./LICENSE).
