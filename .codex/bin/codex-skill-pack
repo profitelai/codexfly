@@ -5,13 +5,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: codex-skill-pack <list|show|install|project|list-groups|show-group|install-group|list-profiles|show-profile|install-profile> [name]
+Usage: codex-skill-pack <list|show|install|project|show-project|list-groups|show-group|install-group|list-profiles|show-profile|install-profile> [name]
 
 Commands:
   list           List available skill packs in this repository
   show <pack>    Show the skills included in a pack
   install <pack> Install a specific pack into CODEX_HOME
   project        Install the repository's default project pack
+  show-project   Show the repository's current project-mode metadata
   list-groups    List available skill groups in this repository
   show-group <group>
                  Show the skills included in a group
@@ -44,6 +45,16 @@ case "$command_name" in
     ;;
   project)
     "$REPO_ROOT/.codex/install-skills.sh" --project
+    ;;
+  show-project)
+    if [ -f "$REPO_ROOT/.codex/project-mode" ]; then
+      sed -n '1,200p' "$REPO_ROOT/.codex/project-mode"
+    elif [ -f "$REPO_ROOT/.codex/project-profile" ]; then
+      echo "PROJECT_DEFAULT_PROFILE=$(sed -n '1p' "$REPO_ROOT/.codex/project-profile")"
+    else
+      echo "No project metadata file found." >&2
+      exit 1
+    fi
     ;;
   list-groups)
     "$REPO_ROOT/.codex/install-skills.sh" --list-groups

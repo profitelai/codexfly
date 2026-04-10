@@ -114,6 +114,8 @@ Codexfly can also organize skills by reusable stage groups such as `discovery`, 
 
 Project profiles can then combine those groups differently for open-source, private-product, or corporate workflows, so repositories do not have to use the same AI setup regardless of business context.
 
+Each repository can also declare repo-level project metadata in `.codex/project-mode`, including visibility, default profile, default stage, and optional extra groups for that repository's normal workflow.
+
 ### AGENTS.md
 
 Instructions live alongside the code:

@@ -10,10 +10,12 @@ GROUPS_DIR="$REPO_ROOT/.codex/groups"
 PROFILES_DIR="$REPO_ROOT/.codex/profiles"
 PROJECT_PACK_FILE="$REPO_ROOT/.codex/project-pack"
 PROJECT_PROFILE_FILE="$REPO_ROOT/.codex/project-profile"
+PROJECT_MODE_FILE="$REPO_ROOT/.codex/project-mode"
 MODE="all"
 PACK_NAME=""
 GROUP_NAME=""
 PROFILE_NAME=""
+EXTRA_GROUPS=""
 
 usage() {
   cat <<'EOF'
@@ -230,8 +232,45 @@ install_profile() {
   done < "$profile_file"
 }
 
+load_project_mode() {
+  if [ ! -f "$PROJECT_MODE_FILE" ]; then
+    return 1
+  fi
+
+  set -a
+  # shellcheck disable=SC1090
+  . "$PROJECT_MODE_FILE"
+  set +a
+
+  PROFILE_NAME="${PROJECT_DEFAULT_PROFILE:-}"
+  EXTRA_GROUPS="${PROJECT_EXTRA_GROUPS:-}"
+  return 0
+}
+
+install_extra_groups() {
+  local groups_csv="$1"
+  local old_ifs="$IFS"
+  local group_name
+
+  [ -n "$groups_csv" ] || return 0
+
+  IFS=','
+  for group_name in $groups_csv; do
+    group_name="$(printf '%s' "$group_name" | tr -d '[:space:]')"
+    [ -n "$group_name" ] || continue
+    install_group "$group_name"
+  done
+  IFS="$old_ifs"
+}
+
 if [ "$MODE" = "project" ]; then
-  if [ -f "$PROJECT_PROFILE_FILE" ]; then
+  if load_project_mode; then
+    [ -n "$PROFILE_NAME" ] || {
+      echo "Project mode file is missing PROJECT_DEFAULT_PROFILE: $PROJECT_MODE_FILE" >&2
+      exit 1
+    }
+    MODE="profile"
+  elif [ -f "$PROJECT_PROFILE_FILE" ]; then
     PROFILE_NAME="$(sed -n '1p' "$PROJECT_PROFILE_FILE" | tr -d '[:space:]')"
     [ -n "$PROFILE_NAME" ] || {
       echo "Project profile file is empty: $PROJECT_PROFILE_FILE" >&2
@@ -266,6 +305,10 @@ case "$MODE" in
     install_profile "$PROFILE_NAME"
     ;;
 esac
+
+if [ "$MODE" = "profile" ] && [ -n "$EXTRA_GROUPS" ]; then
+  install_extra_groups "$EXTRA_GROUPS"
+fi
 
 install_helpers
 
